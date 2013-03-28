@@ -145,3 +145,5 @@
 
 #define PCI_VENDOR_ID_NEC                0x1033
 #define PCI_DEVICE_ID_NEC_UPD720200      0x0194
+
+#define PCI_VENDOR_ID_HGST               0x1C58
