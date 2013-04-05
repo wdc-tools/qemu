@@ -163,6 +163,7 @@ static void process_aq_config(PQIState* pqiDev) {
             iq->ea_addr  = pqi_cntrl_read_config(pqiDev, PQI_AIQ_EAA, DWORD);
             iq->ea_addr += (uint64_t)(pqi_cntrl_read_config(pqiDev, PQI_AIQ_EAA + 4, DWORD)) << 32;
             iq->size = aqparm.fields.numaiqelem;
+            iq->length = ADM_IQ_ELEMENT_LENGTH;
 
             uint64_t queRegAddr = (uint64_t)(PQI_IQ_PI_REG(AIQ_ID));
             uint32_t reglower = (uint32_t)queRegAddr;
@@ -182,6 +183,7 @@ static void process_aq_config(PQIState* pqiDev) {
             pqi_cntrl_write_config(pqiDev, PQI_OQ_CI_REG(AOQ_ID), 0, DWORD);    // OQ CI (actual)
             oq->ea_addr  = pqi_cntrl_read_config(pqiDev, PQI_AOQ_EAA, DWORD);
             oq->ea_addr += (uint64_t)(pqi_cntrl_read_config(pqiDev, PQI_AOQ_EAA + 4, DWORD)) << 32;
+            oq->length = ADM_OQ_ELEMENT_LENGTH;
 
             queRegAddr = (uint64_t)(PQI_OQ_CI_REG(AOQ_ID));
             reglower = (uint32_t)queRegAddr;

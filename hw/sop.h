@@ -1509,9 +1509,9 @@ typedef struct sopLimitedCommandIU {
 	uint16_t queue_id;
 	uint16_t work_area;
 	uint16_t request_id;
-	uint8_t  res   :5;
-	uint8_t  partial :1;
 	uint8_t  direction :2;
+	uint8_t  partial :1;
+	uint8_t  res   :5;
 //	uint8_t flags;
 #define SOP_DATA_DIR_NONE		0x00
 #define SOP_DATA_DIR_FROM_DEVICE	0x01

@@ -141,6 +141,7 @@ void admin_report_caps(PQIState* pqiDev, reportPqiDevCapReq* iu) {
     capRsp.header.type = 0xE0;
     capRsp.header.feat = 0x00;
     capRsp.header.length = 0x003C;
+    capRsp.requestIdentifier = iu->requestIdentifier;
     capRsp.functionCode = 0x00;
 
     if ( rVal == SUCCESS ) {
@@ -229,6 +230,7 @@ void admin_report_man_info(PQIState* pqiDev, reportManInfoReq* iu) {
     manInfoRsp.header.type = 0xE0;
     manInfoRsp.header.feat = 0x00;
     manInfoRsp.header.length = 0x003C;
+    manInfoRsp.requestIdentifier = iu->requestIdentifier;
     manInfoRsp.functionCode = 0x01;
 
     if ( rVal == SUCCESS ) {
@@ -293,7 +295,7 @@ void admin_create_op_iq(PQIState* pqiDev, createOpIqReq* iu) {
         ibQ->ci_work = 0;
         ibQ->ci_local = 0;
         ibQ->ea_addr = iu->iqElementArrayAddress & ELEMENT_ARRAY_ADDR_MASK;
-        ibQ->length = iu->elementLength;
+        ibQ->length = iu->elementLength * 16;
         ibQ->size = iu->numberOfElements;
 
         SOP_LOG_NORM("%s(): created op_iq id:%d elem_len=%d, elem_ct=%d, ci_addr=0x%lx",
@@ -355,7 +357,7 @@ void admin_create_op_oq(PQIState* pqiDev, createOpOqReq* iu) {
         obQ->size = iu->numberOfElements;
         obQ->msixEntry = iu->intMsgNumber & OP_OQ_INT_MESSAGE_NUMBER_MASK;
         obQ->ea_addr = iu->oqElementArrayAddress;
-        obQ->length = iu->elementLength;
+        obQ->length = iu->elementLength * 16;
         obQ->protocol = iu->opQueueProtocol;
         obQ->size = iu->numberOfElements;
         obQ->msixEntry = iu->intMsgNumber;
@@ -925,6 +927,7 @@ void admin_report_op_iq_response(PQIState* pqiDev, reportOpIqListReq* iu, uint32
     listRsp.header.feat = 0x00;
     listRsp.header.length = 0x003C;
     // listRsp.qisd = iu->qisd;
+    listRsp.requestIdentifier = iu->requestIdentifier;
     listRsp.functionCode = 0x16;
     listRsp.status = status;
 
@@ -951,6 +954,7 @@ void admin_report_op_oq_response(PQIState* pqiDev, reportOpOqListReq* iu, uint32
     listRsp.header.feat = 0x00;
     listRsp.header.length = 0x003C;
     // listRsp.qisd = iu->qisd;
+    listRsp.requestIdentifier = iu->requestIdentifier;
     listRsp.functionCode = 0x16;
     listRsp.status = status;
 

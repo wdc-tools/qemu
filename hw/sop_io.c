@@ -249,7 +249,7 @@ void post_to_oq (PQIState* pqiDev, int qid, void *iu, int length) {
 
     SOP_LOG_DBG("%s(): qid = %d, pi = %d, ci = %d", __func__, qid, pi, ci);
 
-    addr = (hwaddr)(oq->ea_addr + (pi * ADM_OQ_ELEMENT_LENGTH));
+    addr = (hwaddr)(oq->ea_addr + (pi * oq->length));
     
     pqi_dma_mem_write(addr, (uint8_t*)iu, length);
 
@@ -280,8 +280,8 @@ void sop_execute_sop_command(PQIState* pqiDev, uint32_t qid, uint16_t ci) {
 
     SOP_LOG_NORM("%s(): called", __func__);
 
-    uint8_t iu [ADM_IQ_ELEMENT_LENGTH];
-    pqi_dma_mem_read(iq->ea_addr + (ci * ADM_IQ_ELEMENT_LENGTH), iu, ADM_IQ_ELEMENT_LENGTH);
+    uint8_t iu [iq->length];
+    pqi_dma_mem_read(iq->ea_addr + (ci * iq->length), iu, iq->length);
 
     iu_type = (uint8_t)(iu)[0];
     compatible_features = (uint8_t)(iu)[1];
