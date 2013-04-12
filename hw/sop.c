@@ -670,7 +670,7 @@ void pqi_reset_request(PQIState* pqiDev, uint32_t val) {
     PQIReset* pr;
     int i;
 
-    SOP_LOG_NORM("%s(): pqiDev = 0x%08lu", __func__, (uint64_t)pqiDev);
+    SOP_LOG_NORM("%s(): pqiDev = 0x%08lx", __func__, (uint64_t)pqiDev);
 
     pr = (PQIReset*)&val;
 
@@ -691,7 +691,7 @@ void pqi_reset_request(PQIState* pqiDev, uint32_t val) {
             break;
 
         case SOFT_RESET:
-            SOP_LOG_NORM("%s(): SOFT_RESET pr = 0x%04u", __func__,pr->fullreg);
+            SOP_LOG_NORM("%s(): SOFT_RESET pr = 0x%04x", __func__,pr->fullreg);
 // Only for this PQI device:
             //  1 - Reset PQI device registers
             //  2 - Reset queuing layer
@@ -749,8 +749,9 @@ void pqi_reset_request(PQIState* pqiDev, uint32_t val) {
             // 3 - Reset IU layer content
 
             pr->fields.resetAction = START_RESET_COMPLETED;
+            pqiDev->sm.state = PQI_DEVICE_STATE_PD2;
             pqi_cntrl_write_config(pqiDev,PQI_RESET,pr->fullreg,4);
-            SOP_LOG_NORM("%s(): SOFT_RESET complete. pr = 0x%04u", __func__,pr->fullreg);
+            SOP_LOG_NORM("%s(): SOFT_RESET complete. pr = 0x%04x", __func__,pr->fullreg);
             break;
 
         case FIRM_RESET:
