@@ -151,29 +151,6 @@ static void ioreq_reset(struct ioreq *ioreq)
     qemu_iovec_reset(&ioreq->v);
 }
 
-static gint int_cmp(gconstpointer a, gconstpointer b, gpointer user_data)
-{
-    uint ua = GPOINTER_TO_UINT(a);
-    uint ub = GPOINTER_TO_UINT(b);
-    return (ua > ub) - (ua < ub);
-}
-
-static void destroy_grant(gpointer pgnt)
-{
-    PersistentGrant *grant = pgnt;
-    XenGnttab gnt = grant->blkdev->xendev.gnttabdev;
-
-    if (xc_gnttab_munmap(gnt, grant->page, 1) != 0) {
-        xen_be_printf(&grant->blkdev->xendev, 0,
-                      "xc_gnttab_munmap failed: %s\n",
-                      strerror(errno));
-    }
-    grant->blkdev->persistent_gnt_count--;
-    xen_be_printf(&grant->blkdev->xendev, 3,
-                  "unmapped grant %p\n", grant->page);
-    g_free(grant);
-}
-
 static struct ioreq *ioreq_start(struct XenBlkDev *blkdev)
 {
     struct ioreq *ioreq = NULL;

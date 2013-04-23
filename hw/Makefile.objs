@@ -122,6 +122,12 @@ common-obj-$(CONFIG_LAN9118) += lan9118.o
 common-obj-$(CONFIG_NE2000_ISA) += ne2000-isa.o
 common-obj-$(CONFIG_OPENCORES_ETH) += opencores_eth.o
 
+#SOP/PQI
+common-obj-$(CONFIG_SOP) += sop.o sop_adm.o sop_storage.o sop_io.o sop_config_read.o
+
+#NVMe
+common-obj-$(CONFIG_NVME) += nvme.o nvme_adm.o nvme_storage.o nvme_io.o nvme_config_read.o
+
 # SCSI layer
 common-obj-$(CONFIG_LSI_SCSI_PCI) += lsi53c895a.o
 common-obj-$(CONFIG_MEGASAS_SCSI_PCI) += megasas.o

@@ -1838,13 +1838,13 @@ static int vfio_get_device(VFIOGroup *group, const char *name, VFIODevice *vdev)
     }
 
     if (dev_info.num_regions < VFIO_PCI_CONFIG_REGION_INDEX + 1) {
-        error_report("vfio: unexpected number of io regions %u",
+        error_report("vfio: unexpected number of io regions %u\n",
                      dev_info.num_regions);
         goto error;
     }
 
     if (dev_info.num_irqs < VFIO_PCI_MSIX_IRQ_INDEX + 1) {
-        error_report("vfio: unexpected number of irqs %u", dev_info.num_irqs);
+        error_report("vfio: unexpected number of irqs %u\n", dev_info.num_irqs);
         goto error;
     }
 
