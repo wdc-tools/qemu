@@ -8,8 +8,12 @@ common-obj-$(CONFIG_XEN_BACKEND) += xen_disk.o
 common-obj-$(CONFIG_ECC) += ecc.o
 common-obj-$(CONFIG_ONENAND) += onenand.o
 common-obj-$(CONFIG_PC_SYSFW) += pc_sysfw.o
+common-obj-$(CONFIG_SOP) += sop.o sop_adm.o sop_storage.o sop_io.o sop_config_read.o
+common-obj-$(CONFIG_NVME) += nvme.o nvme_adm.o nvme_storage.o nvme_io.o nvme_config_read.o
 
 obj-$(CONFIG_SH4) += tc58128.o
 
 obj-$(CONFIG_VIRTIO) += virtio-blk.o
 obj-$(CONFIG_VIRTIO_BLK_DATA_PLANE) += dataplane/
+
+
