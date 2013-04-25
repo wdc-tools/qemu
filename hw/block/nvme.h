@@ -1,13 +1,13 @@
 #ifndef NVME_H_
 #define NVME_H_
 
-#include "hw.h"
-#include "pci/pci.h"
+#include "hw/hw.h"
+#include "hw/pci/msix.h"
+#include "hw/pci/pci.h"
 //#include "qemu-timer.h"
 //#include "qemu-queue.h"
-#include "loader.h"
+#include "hw/loader.h"
 //#include "sysemu.h"
-#include "pci/msix.h"
 #include <pthread.h>
 #include <sched.h>
 
