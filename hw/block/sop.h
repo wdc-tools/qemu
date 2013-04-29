@@ -53,7 +53,6 @@
 #define PAGE_SIZE 4096
 
 // TODO: Should be in pci class someday. BWS - just picked 04 for last byte but that's not defined yet
-#define PCI_CLASS_STORAGE_EXPRESS 0x010800
 #define PQI_PCI_PROG_IF 0x04
 #define PCI_CLASS_STORAGE_OTHER 0x0180    // RBB forcing to class "Other Mass Storage Controller" 01-80-00
 // #define PQI_PCI_PROG_IF 0x00

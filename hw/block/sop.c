@@ -1156,10 +1156,9 @@ static void pqi_pci_space_init(PCIDevice* pciDev) {
     // pci_config_set_class(pci_conf, PCI_CLASS_STORAGE_OTHER);
     
     /* STORAGE EXPRESS is not yet a standard. */
-    pci_config_set_class(pci_conf, PCI_CLASS_STORAGE_EXPRESS >> 8);
+    pci_config_set_class(pci_conf, 0x0100);
 
-    pci_config_set_prog_interface(pci_conf,
-        0xf & PCI_CLASS_STORAGE_EXPRESS);
+    pci_config_set_prog_interface(pci_conf,0x11);
 
     // set cache-size, laency, header type, & BIST
     // pci_set_byte(pci_conf + PCI_CACHE_LINE_SIZE, 0);
@@ -1633,11 +1632,11 @@ static void pqi_class_init(ObjectClass *klass, void *data)
     k->vendor_id = PCI_VENDOR_ID_HGST;
     k->device_id = PQI_DEV_ID;
     k->revision = 0x02;
-    k->class_id = (PCI_CLASS_STORAGE_EXPRESS >> 8);
+    k->class_id = 0x0100;
     k->config_read = pqi_pci_read_config;
     k->config_write = pqi_pci_write_config;
     k->is_express = 1; /* ?? */
-    dc->desc = "Non-Volatile Memory Express";
+    dc->desc = "SCSI over PCIe via PQI";
     dc->reset = qdev_pqi_reset;
     dc->vmsd = &vmstate_soppqi;
     dc->props = soppqi_properties;
