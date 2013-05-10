@@ -747,6 +747,8 @@ typedef struct NvmeCtrl {
     uint8_t     outstanding_aers;
     uint8_t     temp_warn_issued;
     uint8_t     num_errors;
+    int32_t     num_msi;
+    int32_t     num_msix;
 
     char            *serial;
     NvmeErrorLog    *elpes;

@@ -44,6 +44,8 @@
  *  dps=<int>        : Data protection settings, Default:0
  *  mc=<int>         : Meta-data capabilities, Default:0
  *  meta=<int>       : Meta-data size, Default:0
+ *  num_msi=<int>    : Number of msi vectors to allocate (power of 2), Default:32 
+ *  num_msix=<int>   : Number of msix vectors to allocate, Default, number of queues 
  *
  * The logical block formats all start at 512 byte blocks and double for the
  * next index. If meta-data is non-zero, half the logical block formats will
@@ -2028,6 +2030,7 @@ static void nvme_init_ctrl(NvmeCtrl *n)
 static void nvme_init_pci(NvmeCtrl *n)
 {
     uint8_t *pci_conf = n->parent_obj.config;
+    int32_t nr_msi=32,nr_msix=n->num_queues;
 
     pci_conf[PCI_INTERRUPT_PIN] = 1;
     pci_config_set_prog_interface(pci_conf, 0x2);
@@ -2038,8 +2041,20 @@ static void nvme_init_pci(NvmeCtrl *n)
     pci_register_bar(&n->parent_obj, 0,
         PCI_BASE_ADDRESS_SPACE_MEMORY | PCI_BASE_ADDRESS_MEM_TYPE_64,
         &n->iomem);
-    msix_init_exclusive_bar(&n->parent_obj, n->num_queues, 4);
-    msi_init(&n->parent_obj, 0x50, 32, true, false);
+
+    if (n->num_msix>=0)
+        nr_msix = n->num_msix;
+
+    if ((n->num_msi==0) || (n->num_msi >0 &&
+                            is_power_of_2(n->num_msi) && n->num_msi<=32)) {
+        nr_msi = n->num_msi;
+    }
+   
+    if (nr_msix)
+        msix_init_exclusive_bar(&n->parent_obj, nr_msix, 4);
+
+    if (nr_msi)
+        msi_init(&n->parent_obj, 0x50, nr_msi, true, false);
 }
 
 static int nvme_init(PCIDevice *pci_dev)
@@ -2118,6 +2133,8 @@ static Property nvme_props[] = {
     DEFINE_PROP_UINT8("meta", NvmeCtrl, meta, 0),
     DEFINE_PROP_UINT16("oacs", NvmeCtrl, oacs, NVME_OACS_FORMAT),
     DEFINE_PROP_UINT16("oncs", NvmeCtrl, oncs, NVME_ONCS_DSM),
+    DEFINE_PROP_INT32("num_msix", NvmeCtrl, num_msix, -1),
+    DEFINE_PROP_INT32("num_msi", NvmeCtrl, num_msi, -1),
     DEFINE_PROP_END_OF_LIST(),
 };
 
@@ -2150,9 +2167,9 @@ static void nvme_class_init(ObjectClass *oc, void *data)
     pc->init = nvme_init;
     pc->exit = nvme_exit;
     pc->class_id = PCI_CLASS_STORAGE_EXPRESS;
-    pc->vendor_id = PCI_VENDOR_ID_INTEL;
-    pc->device_id = 0x5845;
-    pc->subsystem_vendor_id = PCI_VENDOR_ID_INTEL;
+    pc->vendor_id = PCI_VENDOR_ID_HGST;
+    pc->device_id = 0x0100;
+    pc->subsystem_vendor_id = PCI_VENDOR_ID_HGST;
     pc->subsystem_id = 0x1234;
     pc->revision = 1;
     pc->is_express = 1;
