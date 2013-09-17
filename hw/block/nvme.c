@@ -511,7 +511,8 @@ static uint16_t nvme_pract_verify_dif(uint8_t *buf, const uint32_t bs,
 {
     NvmeDifTuple *dif;
     uint8_t *end = buf + ((bs + ms) * nlb);
-    uint16_t meta_offset = first ? ms - 8 : 0;
+    uint16_t meta_offset = bs;
+    meta_offset += first ? ms - 8 : 0;
 
     for (; buf < end; buf += (bs + ms)) {
         dif = (NvmeDifTuple *)(buf + meta_offset);
@@ -539,7 +540,8 @@ static void nvme_pract_generate_dif(NvmeNamespace *ns, uint8_t *buf,
 {
     NvmeDifTuple *dif;
     uint8_t *end = buf + ((bs + ms) * nlb);
-    uint16_t meta_offset = first ? ms - 8 : 0;
+    uint16_t meta_offset = bs;
+    meta_offset += first ? ms - 8 : 0;
 
     for (; buf < end; buf += (bs + ms), slba++) {
         dif = (NvmeDifTuple *)(buf + meta_offset);
@@ -550,7 +552,7 @@ static void nvme_pract_generate_dif(NvmeNamespace *ns, uint8_t *buf,
 }
 
 static void nvme_interleave_sgl(NvmeCtrl *n, QEMUSGList *qsg, uint8_t *buf,
-    uint8_t len, const uint32_t bs, const uint16_t ms, int is_write)
+    uint32_t len, const uint32_t bs, const uint16_t ms, int is_write)
 {
     uint32_t i = 0, sg_offset = 0;
     uint32_t trans_len, dma_len = bs;
@@ -696,6 +698,7 @@ static uint16_t nvme_rw(NvmeCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
     }
     if (!separate && (ctrl & NVME_RW_PRINFO_PRACT)) {
         data_size += meta_size;
+	meta_size = 0;
         assert(data_size == (nlb * ((1 << data_shift) + ms)));
     }
 
@@ -749,7 +752,7 @@ static uint16_t nvme_rw(NvmeCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
     } else if (ctrl & NVME_RW_PRINFO_PRACT && ms == sizeof(NvmeDifTuple)) {
         /* the mete-data is interleaved; strip/insert meta-data */
         buf = g_malloc(data_size);
-        offset = aio_slba * BDRV_SECTOR_SIZE + slba * ms;
+        offset = aio_slba * BDRV_SECTOR_SIZE + aio_slba * ms;
 
         if (!req->is_write) {
             if (bdrv_pread(n->conf.bs, offset, buf, data_size) != data_size) {
@@ -764,6 +767,17 @@ static uint16_t nvme_rw(NvmeCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
             }
             req->status = nvme_pract_verify_dif(buf, bs, ms, ctrl, nlb, slba,
                 ns->util, first);
+	    
+            if (req->status != NVME_SUCCESS) {
+                qemu_sglist_destroy(&req->qsg);
+                g_free(buf);
+
+                nvme_set_error_page(n, req->sq->sqid, req->cqe.cid,
+                    NVME_INTERNAL_DEV_ERROR, offsetof(NvmeRwCmd, slba),
+                    req->slba, ns->id);
+
+                return NVME_INTERNAL_DEV_ERROR;	        
+	    } 
         }
 
         nvme_interleave_sgl(n, &req->qsg, buf, data_size, bs, ms, req->is_write);
@@ -1923,11 +1937,13 @@ static void nvme_init_namespaces(NvmeCtrl *n)
         NvmeNamespace *ns = &n->namespaces[i];
         NvmeIdNs *id_ns = &ns->id_ns;
         uint64_t blks;
-        uint64_t bdrv_blks;
+	uint64_t blk_size_without_md;
+	uint64_t blk_size_include_md;
         int lba_index;
 
         id_ns->nsfeat = 0;
         id_ns->nlbaf = n->nlbaf - 1;
+
         id_ns->flbas = n->lba_index | (n->extended << 4);
         id_ns->mc = n->mc;
         id_ns->dpc = n->dpc;
@@ -1942,16 +1958,26 @@ static void nvme_init_namespaces(NvmeCtrl *n)
             }
         }
 
-        lba_index = NVME_ID_NS_FLBAS_INDEX(ns->id_ns.flbas);
-        blks = n->ns_size / ((1 << id_ns->lbaf[lba_index].ds) + n->meta);
+	if (i == 0) {
+            lba_index = NVME_ID_NS_FLBAS_INDEX(ns->id_ns.flbas);
+	    blk_size_without_md = (1 << id_ns->lbaf[lba_index].ds);
+	    blk_size_include_md = blk_size_without_md + n->meta;
+            blks = n->ns_size / blk_size_include_md;
+            n->ns_size = blks * blk_size_include_md;
+	}
         id_ns->nuse = id_ns->ncap = id_ns->nsze = cpu_to_le64(blks);
-        bdrv_blks = blks << (id_ns->lbaf[lba_index].ds - BDRV_SECTOR_BITS);
-
         ns->id = i + 1;
         ns->ctrl = n;
-        ns->start_block =
-            ((n->ns_size >> BDRV_SECTOR_BITS) + (n->meta * bdrv_blks)) * i;
-        ns->meta_start_offset = (ns->start_block + bdrv_blks) << BDRV_SECTOR_BITS;
+	ns->start_block = blks*i;
+
+	if (n->extended) {
+	    ns->meta_start_offset = 0;
+	}
+	else {
+            ns->meta_start_offset = ns->start_block*blk_size_include_md +
+	       blks*blk_size_without_md;
+	}
+
         ns->util = bitmap_new(blks);
         ns->uncorrectable = bitmap_new(blks);
     }
