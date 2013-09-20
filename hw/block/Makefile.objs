@@ -10,6 +10,7 @@ common-obj-$(CONFIG_ONENAND) += onenand.o
 common-obj-$(CONFIG_PC_SYSFW) += pc_sysfw.o
 common-obj-$(CONFIG_SOP) += sop.o sop_adm.o sop_storage.o sop_io.o sop_config_read.o
 common-obj-$(CONFIG_NVME) += nvme.o
+common-obj-$(CONFIG_FAULTLINE) += faultline.o
 
 obj-$(CONFIG_SH4) += tc58128.o
 
