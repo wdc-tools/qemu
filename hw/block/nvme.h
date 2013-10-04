@@ -703,6 +703,9 @@ typedef struct NvmeNamespace {
 #define NVME(obj) \
         OBJECT_CHECK(NvmeCtrl, (obj), TYPE_NVME)
 
+/* PCIe extended config space offset for AER Capability */
+#define NVME_EP_AER_OFFSET               0x0100
+
 typedef struct NvmeCtrl {
     PCIDevice    parent_obj;
     MemoryRegion iomem;

@@ -25,6 +25,7 @@
 #include "hw/pci/pci.h"
 #include "hw/pci/pci_bridge.h"
 #include "hw/pci/pci_bus.h"
+#include "hw/pci/pci_host.h"
 #include "monitor/monitor.h"
 #include "net/net.h"
 #include "sysemu/sysemu.h"
@@ -277,6 +278,33 @@ int pci_find_domain(const PCIBus *bus)
 
     abort();    /* should not be reached */
     return -1;
+}
+
+PCIBus *pci_device_root_bus(const PCIDevice *d)
+{
+    PCIBus *bus = d->bus;
+
+    while ((d = bus->parent_dev) != NULL) {
+        bus = d->bus;
+    }
+
+    return bus;
+}
+
+const char *pci_root_bus_path(PCIDevice *dev)
+{
+    PCIBus *rootbus = pci_device_root_bus(dev);
+    PCIHostState *host_bridge = PCI_HOST_BRIDGE(rootbus->qbus.parent);
+    PCIHostBridgeClass *hc = PCI_HOST_BRIDGE_GET_CLASS(host_bridge);
+
+    assert(!rootbus->parent_dev);
+    assert(host_bridge->bus == rootbus);
+
+    if (hc->root_bus_path) {
+        return (*hc->root_bus_path)(host_bridge, rootbus);
+    }
+
+    return rootbus->qbus.name;
 }
 
 static void pci_bus_init(PCIBus *bus, DeviceState *parent,

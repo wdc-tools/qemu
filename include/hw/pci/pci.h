@@ -401,6 +401,9 @@ int pci_read_devaddr(Monitor *mon, const char *addr, int *domp, int *busp,
 
 void pci_device_deassert_intx(PCIDevice *dev);
 
+PCIBus *pci_device_root_bus(const PCIDevice *d);
+const char *pci_root_bus_path(PCIDevice *dev);
+
 typedef DMAContext *(*PCIDMAContextFunc)(PCIBus *, void *, int);
 
 void pci_setup_iommu(PCIBus *bus, PCIDMAContextFunc fn, void *opaque);

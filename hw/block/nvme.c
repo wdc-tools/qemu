@@ -2056,12 +2056,24 @@ static void nvme_init_ctrl(NvmeCtrl *n)
 static void nvme_init_pci(NvmeCtrl *n)
 {
     uint8_t *pci_conf = n->parent_obj.config;
+    PCIDevice *pci_dev = &n->parent_obj;
     int32_t nr_msi=32,nr_msix=n->num_queues;
+    int rc = 0;
 
     pci_conf[PCI_INTERRUPT_PIN] = 1;
     pci_config_set_prog_interface(pci_conf, 0x2);
     pci_config_set_class(pci_conf, PCI_CLASS_STORAGE_EXPRESS);
     pcie_endpoint_cap_init(&n->parent_obj, 0x80);
+
+    /* Add the AER capability */
+    rc = pcie_aer_init(pci_dev, NVME_EP_AER_OFFSET);
+    if (rc < 0) {
+        fprintf(stderr, "ERROR:  %s:%02x:%02x.%x "
+                "PCIe AER Init rc = %d\n",
+                pci_root_bus_path(pci_dev), pci_bus_num(pci_dev->bus),
+                PCI_SLOT(pci_dev->devfn), PCI_FUNC(pci_dev->devfn),
+                rc);
+    }
 
     memory_region_init_io(&n->iomem, &nvme_mmio_ops, n, "nvme", n->reg_size);
     pci_register_bar(&n->parent_obj, 0,
