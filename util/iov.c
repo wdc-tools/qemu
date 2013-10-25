@@ -146,7 +146,7 @@ ssize_t iov_send_recv(int sockfd, struct iovec *iov, unsigned iov_cnt,
 {
     ssize_t total = 0;
     ssize_t ret;
-    size_t orig_len, tail;
+    size_t orig_len = 0, tail;
     unsigned niov;
 
     while (bytes > 0) {
