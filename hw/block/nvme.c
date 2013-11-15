@@ -1730,10 +1730,12 @@ static int nvme_start_ctrl(NvmeCtrl *n)
             n->bar.asq & (page_size - 1) || n->bar.acq & (page_size - 1) ||
             NVME_CC_MPS(n->bar.cc) < NVME_CAP_MPSMIN(n->bar.cap) ||
             NVME_CC_MPS(n->bar.cc) > NVME_CAP_MPSMAX(n->bar.cap) ||
+
             NVME_CC_IOCQES(n->bar.cc) < NVME_CTRL_CQES_MIN(n->id_ctrl.cqes) ||
             NVME_CC_IOCQES(n->bar.cc) > NVME_CTRL_CQES_MAX(n->id_ctrl.cqes) ||
             NVME_CC_IOSQES(n->bar.cc) < NVME_CTRL_SQES_MIN(n->id_ctrl.sqes) ||
             NVME_CC_IOSQES(n->bar.cc) > NVME_CTRL_SQES_MAX(n->id_ctrl.sqes) ||
+
             !NVME_AQA_ASQS(n->bar.aqa) || NVME_AQA_ASQS(n->bar.aqa) > 4095 ||
             !NVME_AQA_ACQS(n->bar.aqa) || NVME_AQA_ACQS(n->bar.aqa) > 4095) {
         return -1;
@@ -1758,6 +1760,9 @@ static int nvme_start_ctrl(NvmeCtrl *n)
 static void nvme_write_bar(NvmeCtrl *n, hwaddr offset, uint64_t data,
     unsigned size)
 {
+    bool enabled = FALSE;
+    bool shutdownActive = FALSE;
+
     switch (offset) {
     case 0xc:
         n->bar.intms |= data & 0xffffffff;
@@ -1768,22 +1773,29 @@ static void nvme_write_bar(NvmeCtrl *n, hwaddr offset, uint64_t data,
         n->bar.intmc = n->bar.intms;
         break;
     case 0x14:
-        if (NVME_CC_EN(data) && !NVME_CC_EN(n->bar.cc)) {
-            n->bar.cc = data;
-            if (nvme_start_ctrl(n)) {
-                n->bar.csts = NVME_CSTS_FAILED;
-            } else {
-                n->bar.csts = NVME_CSTS_READY;
-            }
-        } else if (!NVME_CC_EN(data) && NVME_CC_EN(n->bar.cc)) {
+        if (!NVME_CC_EN(data) && NVME_CC_EN(n->bar.cc)) {
             nvme_clear_ctrl(n);
-            n->bar.csts &= ~NVME_CSTS_READY;
-        }
-        if (NVME_CC_SHN(data) && !(NVME_CC_SHN(n->bar.cc))) {
+            n->bar.csts = 0;
+ 
+        } else {
+	    enabled = NVME_CC_EN(n->bar.cc);
+            shutdownActive = NVME_CC_SHN(n->bar.cc);
+            n->bar.cc |= data;
+
+            if (NVME_CC_EN(data) && !enabled) {
+              if (nvme_start_ctrl(n)) {
+                  n->bar.csts = NVME_CSTS_FAILED;
+              } else {
+                  n->bar.csts = NVME_CSTS_READY;
+              }
+            }
+        } 
+     
+        if (NVME_CC_SHN(data) && !shutdownActive) {
                 nvme_clear_ctrl(n);
                 n->bar.cc = data;
                 n->bar.csts |= NVME_CSTS_SHST_COMPLETE;
-        } else if (!NVME_CC_SHN(data) && NVME_CC_SHN(n->bar.cc)) {
+        } else if (!NVME_CC_SHN(data) && shutdownActive) {
                 n->bar.csts &= ~NVME_CSTS_SHST_COMPLETE;
                 n->bar.cc = data;
         }
@@ -2037,6 +2049,8 @@ static void nvme_init_ctrl(NvmeCtrl *n)
     }
 
     n->bar.cap = 0;
+    n->bar.cc = 0;
+
     NVME_CAP_SET_MQES(n->bar.cap, n->max_q_ents);
     NVME_CAP_SET_CQR(n->bar.cap, n->cqr);
     NVME_CAP_SET_AMS(n->bar.cap, 1);
