@@ -617,7 +617,7 @@ static void nvme_rw_cb(void *opaque, int ret)
         req->status = NVME_INTERNAL_DEV_ERROR;
     }
     if (req->status != NVME_SUCCESS) {
-        nvme_set_error_page(n, sq->sqid, req->cqe.cid, req->status,
+    	nvme_set_error_page(n, sq->sqid, req->cqe.cid, req->status,
             offsetof(NvmeRwCmd, slba), req->slba, ns->id);
         if (req->is_write) {
             bitmap_clear(ns->util, req->slba, req->nlb);
@@ -751,7 +751,7 @@ static uint16_t nvme_rw(NvmeCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
         }
     } else if (ctrl & NVME_RW_PRINFO_PRACT && ms == sizeof(NvmeDifTuple)) {
         /* the mete-data is interleaved; strip/insert meta-data */
-        buf = g_malloc(data_size);
+    	buf = g_malloc(data_size);
         offset = aio_slba * BDRV_SECTOR_SIZE + aio_slba * ms;
 
         if (!req->is_write) {
@@ -887,15 +887,16 @@ static uint16_t nvme_compare(NvmeCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
             offsetof(NvmeRwCmd, prp1), 0, ns->id);
         return NVME_INVALID_FIELD | NVME_DNR;
     }
-    if (find_next_bit(ns->uncorrectable, elba, slba) >= elba) {
-        return NVME_UNRECOVERED_READ;
-    }
+
+    if (find_next_bit(ns->uncorrectable, elba, slba) < elba) {
+		return NVME_UNRECOVERED_READ;
+	}
 
     for (i = 0; i < req->qsg.nsg; i++) {
         uint32_t len = req->qsg.sg[i].len;
         uint8_t tmp[2][len];
 
-        if (bdrv_pread(n->conf.bs, offset, tmp[0], len) == len) {
+		if (bdrv_pread(n->conf.bs, offset, tmp[0], len) != len) {
             qemu_sglist_destroy(&req->qsg);
             nvme_set_error_page(n, req->sq->sqid, req->cqe.cid,
                 NVME_INTERNAL_DEV_ERROR, offsetof(NvmeRwCmd, slba),
@@ -904,10 +905,29 @@ static uint16_t nvme_compare(NvmeCtrl *n, NvmeNamespace *ns, NvmeCmd *cmd,
         }
 
         pci_dma_read(&n->parent_obj, req->qsg.sg[i].base, tmp[1], len);
-        if (memcmp(tmp[0], tmp[1], len)) {
-            qemu_sglist_destroy(&req->qsg);
-            return NVME_CMP_FAILURE;
-        }
+
+		if (memcmp(tmp[0], tmp[1], len)) {
+			qemu_sglist_destroy(&req->qsg);
+			fprintf(stderr, "\n%s:  Memory miscompare, len = 0x%x, i = %d\n",__func__, len, i);
+
+			// print tmp[0] and tmp[1]
+			fprintf(stderr,	"tmp[0] data\n");
+			int j;
+			for (j = 0; j < len; j++) {
+				fprintf(stderr, "%x", tmp[0][j]);
+				if ((j != 0) && ((j+1) % 32 == 0))
+					fprintf(stderr, "\n");
+			}
+
+			fprintf(stderr, "\ntmp[1] data\n");
+			for (j = 0; j < len; j++) {
+				fprintf(stderr, "%x", tmp[1][j]);
+				if ((j != 0) && ((j+1) % 32 == 0))
+					fprintf(stderr, "\n");
+			}
+
+			return NVME_CMP_FAILURE;
+		}
 
         offset += len;
     }
@@ -2219,10 +2239,15 @@ static void nvme_class_init(ObjectClass *oc, void *data)
     pc->init = nvme_init;
     pc->exit = nvme_exit;
     pc->class_id = PCI_CLASS_STORAGE_EXPRESS;
+    /*
     pc->vendor_id = PCI_VENDOR_ID_HGST;
     pc->device_id = 0x0100;
     pc->subsystem_vendor_id = PCI_VENDOR_ID_HGST;
-    pc->subsystem_id = 0x1234;
+    pc->subsystem_id = 0x1234;*/
+    pc->vendor_id = PCI_VENDOR_ID_STEC;
+    pc->device_id = PCI_DEVICE_ID_GALLIANT_FOX;
+    pc->subsystem_vendor_id = PCI_VENDOR_ID_STEC;
+    pc->subsystem_id = PCI_DEVICE_ID_GALLIANT_FOX;
     pc->revision = 1;
     pc->is_express = 1;
 

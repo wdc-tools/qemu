@@ -153,5 +153,9 @@
 #define PCI_DEVICE_ID_TEWS_TPCI200       0x30C8
 
 #define PCI_VENDOR_ID_HGST               0x1C58
+
+#define PCI_VENDOR_ID_STEC               0x1B39
+#define PCI_DEVICE_ID_GALLIANT_FOX       0x0003
+
 #endif
 
